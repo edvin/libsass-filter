@@ -3,7 +3,7 @@
 ## Compiles SASS to CSS on-the-fly
 
 libsass-filter uses [libsass-maven-plugin](https://github.com/warmuuh/libsass-maven-plugin)
- which uses [libsass](https://github.com/sass/libsass) under the covers via Java native bindings.
+ which uses [libsass](https://github.com/sass/libsass) under the covers via Jna native bindings.
  
 ### Installation
  

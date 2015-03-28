@@ -10,6 +10,8 @@
     <packaging>jar</packaging>
     <description>Compiles SASS to CSS on-the-fly</description>
     <inceptionYear>2015</inceptionYear>
+    <name>libsass-filter</name>
+    <url>https://github.com/edvin/libsass-filter</url>
 
     <dependencies>
         <dependency>
@@ -94,6 +96,35 @@
                     <target>1.8</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.2</version>
+                <executions>
+                    <execution>
+                        <id>aggregate</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>aggregate</goal>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
