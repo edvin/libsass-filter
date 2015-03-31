@@ -72,10 +72,14 @@ public class SassFilter implements Filter {
 
 		if (relative != null) {
 			String absolute = request.getServletContext().getRealPath(relative);
-			if (cache && compiledCache.containsKey(absolute))
-				outputCss(response, compiledCache.get(absolute));
-			else if (Files.exists(Paths.get(absolute)))
-				outputCss(response, compile(absolute));
+			if (absolute != null) {
+				if (cache && compiledCache.containsKey(absolute))
+					outputCss(response, compiledCache.get(absolute));
+				else if (Files.exists(Paths.get(absolute)))
+					outputCss(response, compile(absolute));
+			} else {
+				chain.doFilter(request, response);
+			}
 		} else {
 			chain.doFilter(request, response);
 		}

@@ -12,7 +12,7 @@ Include the following Maven dependency in your pom.xml:
     <dependency>
         <groupId>no.tornado</groupId>
         <artifactId>libsass-filter</artifactId>
-        <version>0.1.2</version>
+        <version>0.1.2.1</version>
     </dependency>
 
 By default, the Servlet Filter will be installed on `*.css` and `*.xhtml`. The xhtml
