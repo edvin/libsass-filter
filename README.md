@@ -5,6 +5,8 @@
 libsass-filter uses [libsass-maven-plugin](https://github.com/warmuuh/libsass-maven-plugin)
  which uses [libsass](https://github.com/sass/libsass) under the covers via Jna native bindings.
  
+ It also supports autoprefixing via [autoprefixer](https://github.com/postcss/autoprefixer).
+ 
 ### Installation
  
 Include the following Maven dependency in your pom.xml:
@@ -12,7 +14,7 @@ Include the following Maven dependency in your pom.xml:
     <dependency>
         <groupId>no.tornado</groupId>
         <artifactId>libsass-filter</artifactId>
-        <version>0.1.2.1</version>
+        <version>0.1.2.2</version>
     </dependency>
 
 By default, the Servlet Filter will be installed on `*.css` and `*.xhtml`. The xhtml
@@ -35,6 +37,11 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
              <param-name>cache</param-name>
              <param-value>true</param-value>
          </init-param>
+         <!-- Autoprefix CSS, requires npm install -g autoprefixer -->
+         <init-param>
+             <param-name>autoprefix</param-name>
+             <param-value>true</param-value>
+         </init-param>
      </filter>
  
      <filter-mapping>
@@ -47,7 +54,7 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
          <filter-name>SassFilter</filter-name>
          <url-pattern>*.xhtml</url-pattern>
      </filter-mapping>
- 
+
 ### Configuration
  
  All configuration options are set via init-params in web.xml.
@@ -57,6 +64,7 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
  * `outputStyle` (nested, expanded, compact, compressed) - Output CSS style. Default: compact.
  * `includePaths` - Additional include paths
  * `imagePath` - Optional image path
+ * `autoprefix` (true|false) - Add prefixes using [autoprefixer](https://github.com/postcss/autoprefixer) (requires `npm install --global autoprefixer`)
  
 ### Usage
 

@@ -6,7 +6,7 @@
 
     <groupId>no.tornado</groupId>
     <artifactId>libsass-filter</artifactId>
-    <version>0.1.2.1</version>
+    <version>0.1.2.2</version>
     <packaging>jar</packaging>
     <description>Compiles SASS to CSS on-the-fly</description>
     <inceptionYear>2015</inceptionYear>

@@ -1,6 +1,5 @@
 package no.tornado.libsass;
 
-import wrm.libsass.SassCompilationException;
 import wrm.libsass.SassCompiler;
 import wrm.libsass.SassCompiler.InputSyntax;
 import wrm.libsass.SassCompiler.OutputStyle;
@@ -10,6 +9,7 @@ import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,8 +24,9 @@ public class SassFilter implements Filter {
 	private static final Pattern JsfResourcePattern = Pattern.compile(".*/javax\\.faces\\.resource/(.*)\\.css.xhtml");
 	private SassCompiler compiler;
 	private Boolean cache;
-	private Map<String, SassCompilerOutput> compiledCache;
+	private Map<String, byte[]> compiledCache;
 	private WatchService watcher;
+	private Boolean autoprefix;
 
 	public void init(FilterConfig cfg) throws ServletException {
 		compiler = new SassCompiler();
@@ -42,7 +43,7 @@ public class SassFilter implements Filter {
 		compiler.setOmitSourceMappingURL(booleanSetting(cfg, "omitSourceMappingURL", true));
 		String precision = cfg.getInitParameter("precision");
 		compiler.setPrecision(precision != null ? Integer.valueOf(precision) : 5);
-
+		autoprefix = booleanSetting(cfg, "autoprefix", false);
 		cache = booleanSetting(cfg, "cache", false);
 
 		if (cache) {
@@ -141,21 +142,54 @@ public class SassFilter implements Filter {
 		return value != null ? "true".equalsIgnoreCase(value) : defaultValue;
 	}
 
-	private SassCompilerOutput compile(String absolute) throws ServletException {
+	private byte[] compile(String absolute) throws ServletException {
 		try {
-			SassCompilerOutput output = compiler.compileFile(absolute, null, null);
-			if (cache)
-				compiledCache.put(absolute, output);
 
-			return output;
-		} catch (SassCompilationException e) {
-			throw new ServletException(e);
+			SassCompilerOutput output = compiler.compileFile(absolute, null, null);
+
+			byte[] data;
+
+			if (autoprefix) {
+				Path tmpCss = Files.createTempFile("stylesheet", "css");
+				Files.write(tmpCss, output.getCssOutput().getBytes("UTF-8"));
+
+				Path tmpPrefixed = Files.createTempFile("prefixed", "css");
+				ProcessBuilder pb = new ProcessBuilder("autoprefixer", "-o", tmpPrefixed.toAbsolutePath().toString(), tmpCss.toString());
+				Process p = pb.start();
+				int result = p.waitFor();
+				if (result != 0)
+					throw new ServletException("Autoprefixer failed with error code " + result);
+
+				data = Files.readAllBytes(tmpPrefixed);
+
+				try {
+					Files.deleteIfExists(tmpCss);
+					Files.deleteIfExists(tmpPrefixed);
+				} catch (IOException ignored) {
+				}
+
+			} else {
+				try {
+					data = output.getCssOutput().getBytes("UTF-8");
+				} catch (UnsupportedEncodingException noUtf8) {
+					throw new RuntimeException(noUtf8);
+				}
+			}
+
+			if (cache)
+				compiledCache.put(absolute, data);
+
+			return data;
+		} catch (ServletException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new ServletException("Autoprefixer failed", e);
 		}
 	}
 
-	private void outputCss(ServletResponse response, SassCompilerOutput output) throws IOException {
+	private void outputCss(ServletResponse response, byte[] data) throws IOException {
 		response.setContentType("text/css");
-		response.getWriter().write(output.getCssOutput());
+		response.getOutputStream().write(data);
 	}
 
 	public void destroy() {
