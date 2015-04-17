@@ -8,9 +8,14 @@ import wrm.libsass.SassCompilerOutput;
 import javax.servlet.*;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -18,6 +23,8 @@ import java.util.regex.Pattern;
 
 import static java.lang.String.format;
 import static java.nio.file.StandardWatchEventKinds.*;
+import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
+import static javax.servlet.http.HttpServletResponse.SC_NOT_MODIFIED;
 
 @WebFilter(urlPatterns = {"*.css", "*.xhtml"})
 public class SassFilter implements Filter {
@@ -74,10 +81,12 @@ public class SassFilter implements Filter {
 		if (relative != null) {
 			String absolute = request.getServletContext().getRealPath(relative);
 			if (absolute != null) {
-				if (cache && compiledCache.containsKey(absolute))
+				if (cache && compiledCache.containsKey(absolute)) {
 					outputCss(response, compiledCache.get(absolute));
-				else if (Files.exists(Paths.get(absolute)))
+					addCacheHeaders(Paths.get(absolute), request, (HttpServletResponse) response);
+				} else if (Files.exists(Paths.get(absolute))) {
 					outputCss(response, compile(absolute));
+				}
 			} else {
 				chain.doFilter(request, response);
 			}
@@ -178,7 +187,6 @@ public class SassFilter implements Filter {
 
 			if (cache)
 				compiledCache.put(absolute, data);
-
 			return data;
 		} catch (ServletException e) {
 			throw e;
@@ -202,5 +210,28 @@ public class SassFilter implements Filter {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void addCacheHeaders(Path path, HttpServletRequest request, HttpServletResponse response) throws IOException {
+		Instant modified = Files.getLastModifiedTime(path).toInstant();
+		Long ifModifiedSinceValue;
+
+		try {
+			ifModifiedSinceValue = request.getDateHeader("If-Modified-Since");
+		} catch (Exception malformedDateHeaderFromClient) {
+			ifModifiedSinceValue = -1l;
+		}
+
+		if (ifModifiedSinceValue > -1) {
+			Instant ifModifiedSince = new Date(ifModifiedSinceValue).toInstant();
+
+			if (modified.equals(ifModifiedSince) || modified.isBefore(ifModifiedSince)) {
+				response.setStatus(SC_NOT_MODIFIED);
+				return;
+			}
+		}
+
+		response.setHeader("Expires", RFC_1123_DATE_TIME.format(ZonedDateTime.now().plusHours(3)));
+		response.setHeader("Last-Modified", RFC_1123_DATE_TIME.format(ZonedDateTime.from(modified.atZone(ZoneId.systemDefault()))));
 	}
 }

@@ -4,6 +4,7 @@
 
 libsass-filter uses [libsass-maven-plugin](https://github.com/warmuuh/libsass-maven-plugin)
  which uses [libsass](https://github.com/sass/libsass) under the covers via Jna native bindings.
+ You are however not required to use Maven, we just use the sass bindings from libsass-maven-plugin to access libsass.
  
  It also supports autoprefixing via [autoprefixer](https://github.com/postcss/autoprefixer).
  
