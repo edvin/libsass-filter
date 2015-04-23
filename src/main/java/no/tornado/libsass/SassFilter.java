@@ -34,6 +34,7 @@ public class SassFilter implements Filter {
 	private Map<String, byte[]> compiledCache;
 	private WatchService watcher;
 	private Boolean autoprefix;
+	private String autoprefixBrowsers;
 
 	public void init(FilterConfig cfg) throws ServletException {
 		compiler = new SassCompiler();
@@ -51,6 +52,9 @@ public class SassFilter implements Filter {
 		String precision = cfg.getInitParameter("precision");
 		compiler.setPrecision(precision != null ? Integer.valueOf(precision) : 5);
 		autoprefix = booleanSetting(cfg, "autoprefix", false);
+		autoprefixBrowsers = cfg.getInitParameter("autoprefixBrowsers");
+		if (autoprefixBrowsers == null)
+			autoprefixBrowsers = "last 2 versions, ie 10";
 		cache = booleanSetting(cfg, "cache", false);
 
 		if (cache) {
@@ -161,19 +165,16 @@ public class SassFilter implements Filter {
 			if (autoprefix) {
 				Path tmpCss = Files.createTempFile("stylesheet", "css");
 				Files.write(tmpCss, output.getCssOutput().getBytes("UTF-8"));
-
-				Path tmpPrefixed = Files.createTempFile("prefixed", "css");
-				ProcessBuilder pb = new ProcessBuilder("autoprefixer", "-o", tmpPrefixed.toAbsolutePath().toString(), tmpCss.toString());
+				ProcessBuilder pb = new ProcessBuilder("autoprefixer", tmpCss.toString(), "-b", autoprefixBrowsers);
 				Process p = pb.start();
 				int result = p.waitFor();
 				if (result != 0)
 					throw new ServletException("Autoprefixer failed with error code " + result);
 
-				data = Files.readAllBytes(tmpPrefixed);
+				data = Files.readAllBytes(tmpCss);
 
 				try {
 					Files.deleteIfExists(tmpCss);
-					Files.deleteIfExists(tmpPrefixed);
 				} catch (IOException ignored) {
 				}
 
@@ -234,4 +235,5 @@ public class SassFilter implements Filter {
 		response.setHeader("Expires", RFC_1123_DATE_TIME.format(ZonedDateTime.now().plusHours(3)));
 		response.setHeader("Last-Modified", RFC_1123_DATE_TIME.format(ZonedDateTime.from(modified.atZone(ZoneId.systemDefault()))));
 	}
+
 }
