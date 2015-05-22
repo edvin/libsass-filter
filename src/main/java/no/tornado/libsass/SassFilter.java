@@ -35,6 +35,7 @@ public class SassFilter implements Filter {
 	private WatchService watcher;
 	private Boolean autoprefix;
 	private String autoprefixBrowsers;
+	private String autoprefixerPath;
 
 	public void init(FilterConfig cfg) throws ServletException {
 		compiler = new SassCompiler();
@@ -53,6 +54,10 @@ public class SassFilter implements Filter {
 		compiler.setPrecision(precision != null ? Integer.valueOf(precision) : 5);
 		autoprefix = booleanSetting(cfg, "autoprefix", false);
 		autoprefixBrowsers = cfg.getInitParameter("autoprefixBrowsers");
+		autoprefixerPath = cfg.getInitParameter("autoprefixerPath");
+		if (autoprefixerPath == null)
+			autoprefixerPath = "autoprefixer";
+
 		if (autoprefixBrowsers == null)
 			autoprefixBrowsers = "last 2 versions, ie 10";
 		cache = booleanSetting(cfg, "cache", false);
@@ -165,7 +170,7 @@ public class SassFilter implements Filter {
 			if (autoprefix) {
 				Path tmpCss = Files.createTempFile("stylesheet", "css");
 				Files.write(tmpCss, output.getCssOutput().getBytes("UTF-8"));
-				ProcessBuilder pb = new ProcessBuilder("autoprefixer", tmpCss.toString(), "-b", autoprefixBrowsers);
+				ProcessBuilder pb = new ProcessBuilder(autoprefixerPath, tmpCss.toString(), "-b", autoprefixBrowsers);
 				Process p = pb.start();
 				int result = p.waitFor();
 				if (result != 0)

@@ -15,7 +15,7 @@ Include the following Maven dependency in your pom.xml:
     <dependency>
         <groupId>no.tornado</groupId>
         <artifactId>libsass-filter</artifactId>
-        <version>0.1.2.3</version>
+        <version>0.1.2.4</version>
     </dependency>
 
 By default, the Servlet Filter will be installed on `*.css` and `*.xhtml`. The xhtml
@@ -47,6 +47,10 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
              <param-name>autoprefixBrowsers</param-name>
              <param-value>last 2 versions, ie 10</param-value>
          </init-param>
+         <init-param>
+             <param-name>autoprefixerPath</param-name>
+             <param-value>/my/path/to/autoprefixer</param-value>
+         </init-param>
      </filter>
  
      <filter-mapping>
@@ -71,6 +75,7 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
  * `imagePath` - Optional image path
  * `autoprefix` (true|false) - Add prefixes using [autoprefixer](https://github.com/postcss/autoprefixer) (requires `npm install --global autoprefixer`)
  * `autoprefixBrowsers` - What browsers to prefix for, defaults to `last 2 versions, ie 10`
+ * `autoprefixerPath` - Path to autoprefixer, defaults to `autoprefixer`. On Windows, you need either fullpath or for example `autoprefixer.cmd`
  
 ### Usage
 
