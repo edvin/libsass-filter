@@ -43,7 +43,6 @@ public class SassFilter implements Filter {
 		compiler.setEmbedSourceContentsInSourceMap(booleanSetting(cfg, "embedSourceContentsInSourceMap", false));
 		compiler.setGenerateSourceComments(booleanSetting(cfg, "generateSourceComments", false));
 		compiler.setGenerateSourceMap(booleanSetting(cfg, "generateSourceMap", false));
-		compiler.setImagePath(cfg.getInitParameter("imagePath"));
 		compiler.setIncludePaths(cfg.getInitParameter("includePaths"));
 		String inputSyntax = cfg.getInitParameter("inputSyntax");
 		compiler.setInputSyntax(inputSyntax == null ? InputSyntax.scss : InputSyntax.valueOf(inputSyntax));
