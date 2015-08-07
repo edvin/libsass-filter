@@ -15,11 +15,8 @@ Include the following Maven dependency in your pom.xml:
     <dependency>
         <groupId>no.tornado</groupId>
         <artifactId>libsass-filter</artifactId>
-        <version>0.1.2.5</version>
+        <version>0.1.2.6</version>
     </dependency>
-
-By default, the Servlet Filter will be installed on `*.css` and `*.xhtml`. The xhtml
-mode is used to support JSF resources.
 
 The default settings are good for development, as your stylesheets will be recompiled
 on every request. This takes less than 100ms on my test setup with over 40 imports.

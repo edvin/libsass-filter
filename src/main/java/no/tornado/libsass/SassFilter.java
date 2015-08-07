@@ -6,7 +6,6 @@ import wrm.libsass.SassCompiler.OutputStyle;
 import wrm.libsass.SassCompilerOutput;
 
 import javax.servlet.*;
-import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -21,12 +20,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.lang.String.format;
 import static java.nio.file.StandardWatchEventKinds.*;
 import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_MODIFIED;
 
-@WebFilter(urlPatterns = {"*.css", "*.xhtml"})
 public class SassFilter implements Filter {
 	private static final Pattern JsfResourcePattern = Pattern.compile(".*/javax\\.faces\\.resource/(.*)\\.css.xhtml");
 	private SassCompiler compiler;
@@ -71,36 +68,33 @@ public class SassFilter implements Filter {
 	public void doFilter(ServletRequest _request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		HttpServletRequest request = ((HttpServletRequest) _request);
 
-		String relative = null;
-
 		String servletPath = request.getServletPath();
+		String absolute = null;
 
-		if (servletPath.endsWith(".css")) {
-			relative = servletPath.replaceAll("\\.css$", ".scss");
-		} else {
-			Matcher matcher = JsfResourcePattern.matcher(servletPath);
-			if (matcher.matches()) {
-				String ln = request.getParameter("ln");
-				relative = ln == null ? format("/resources/%s.scss", matcher.group(1))
-					: format("/resources/%s/%s.scss", ln, matcher.group(1));
+		Matcher matcher = JsfResourcePattern.matcher(servletPath);
+
+		if (matcher.matches()) {
+			String ln = request.getParameter("ln");
+			String relative = ln == null ? String.format("/resources/%s.scss", matcher.group(1))
+				: String.format("/resources/%s/%s.scss", ln, matcher.group(1));
+
+			absolute = request.getServletContext().getRealPath(relative);
+		} else if(servletPath.endsWith(".css")) {
+			absolute = request.getServletContext().getRealPath(servletPath.replaceAll("\\.css$", ".scss"));
+		}
+
+		if (absolute != null) {
+			if (cache && compiledCache.containsKey(absolute)) {
+				outputCss(response, compiledCache.get(absolute));
+				addCacheHeaders(Paths.get(absolute), request, (HttpServletResponse) response);
+				return;
+			} else if (Files.exists(Paths.get(absolute))) {
+				outputCss(response, compile(absolute));
+				return;
 			}
 		}
 
-		if (relative != null) {
-			String absolute = request.getServletContext().getRealPath(relative);
-			if (absolute != null) {
-				if (cache && compiledCache.containsKey(absolute)) {
-					outputCss(response, compiledCache.get(absolute));
-					addCacheHeaders(Paths.get(absolute), request, (HttpServletResponse) response);
-				} else if (Files.exists(Paths.get(absolute))) {
-					outputCss(response, compile(absolute));
-				}
-			} else {
-				chain.doFilter(request, response);
-			}
-		} else {
-			chain.doFilter(request, response);
-		}
+		chain.doFilter(request, response);
 	}
 
 	private void startWatchingForChanges(FilterConfig cfg) throws ServletException {
