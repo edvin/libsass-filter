@@ -25,7 +25,7 @@ import static java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_MODIFIED;
 
 public class SassFilter implements Filter {
-	private static final Pattern JsfResourcePattern = Pattern.compile(".*/javax\\.faces\\.resource/(.*)\\.css.xhtml");
+	private static final Pattern JsfResourcePattern = Pattern.compile(".*/javax\\.faces\\.resource/(.*)\\.s?css.xhtml");
 	private SassCompiler compiler;
 	private Boolean cache;
 	private Map<String, byte[]> compiledCache;
@@ -81,7 +81,8 @@ public class SassFilter implements Filter {
 			absolute = request.getServletContext().getRealPath(relative);
 		} else if(servletPath.endsWith(".css")) {
 			absolute = request.getServletContext().getRealPath(servletPath.replaceAll("\\.css$", ".scss"));
-		}
+		} else if (servletPath.endsWith(".scss"))
+			absolute = request.getServletContext().getRealPath(servletPath);
 
 		if (absolute != null) {
 			if (cache && compiledCache.containsKey(absolute)) {

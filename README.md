@@ -15,7 +15,7 @@ Include the following Maven dependency in your pom.xml:
     <dependency>
         <groupId>no.tornado</groupId>
         <artifactId>libsass-filter</artifactId>
-        <version>0.1.2.6</version>
+        <version>0.1.2.7</version>
     </dependency>
 
 The default settings are good for development, as your stylesheets will be recompiled
