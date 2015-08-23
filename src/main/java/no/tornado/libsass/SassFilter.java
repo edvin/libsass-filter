@@ -15,8 +15,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,8 +26,7 @@ import static javax.servlet.http.HttpServletResponse.SC_NOT_MODIFIED;
 public class SassFilter implements Filter {
 	private static final Pattern JsfResourcePattern = Pattern.compile(".*/javax\\.faces\\.resource/(.*)\\.s?css.xhtml");
 	private SassCompiler compiler;
-	private Boolean cache;
-	private Map<String, byte[]> compiledCache;
+	private ConcurrentHashMap<String, byte[]> cache;
 	private WatchService watcher;
 	private Boolean autoprefix;
 	private String autoprefixBrowsers;
@@ -51,15 +49,15 @@ public class SassFilter implements Filter {
 		autoprefix = booleanSetting(cfg, "autoprefix", false);
 		autoprefixBrowsers = cfg.getInitParameter("autoprefixBrowsers");
 		autoprefixerPath = cfg.getInitParameter("autoprefixerPath");
+
 		if (autoprefixerPath == null)
 			autoprefixerPath = "autoprefixer";
 
 		if (autoprefixBrowsers == null)
 			autoprefixBrowsers = "last 2 versions, ie 10";
-		cache = booleanSetting(cfg, "cache", false);
 
-		if (cache) {
-			compiledCache = new HashMap<>();
+		if (booleanSetting(cfg, "cache", false)) {
+			cache = new ConcurrentHashMap<>();
 			if (booleanSetting(cfg, "watch", false))
 				startWatchingForChanges(cfg);
 		}
@@ -85,11 +83,12 @@ public class SassFilter implements Filter {
 			absolute = request.getServletContext().getRealPath(servletPath);
 
 		if (absolute != null) {
-			if (cache && compiledCache.containsKey(absolute)) {
-				outputCss(response, compiledCache.get(absolute));
+			if (cache != null) {
+				byte[] data = cache.computeIfAbsent(absolute, this::compile);
+				outputCss(response, data);
 				addCacheHeaders(Paths.get(absolute), request, (HttpServletResponse) response);
 				return;
-			} else if (Files.exists(Paths.get(absolute))) {
+			} else if (Files.exists(Paths.get(absolute))){
 				outputCss(response, compile(absolute));
 				return;
 			}
@@ -117,14 +116,13 @@ public class SassFilter implements Filter {
 						if (kind == OVERFLOW)
 							continue;
 
+						@SuppressWarnings("unchecked")
 						WatchEvent<Path> ev = (WatchEvent<Path>) event;
 						Path fullPath = dir.resolve(ev.context());
 						String filename = fullPath.toString();
 						try {
-							if (filename.endsWith(".scss") || pathIsFolderAndContainsScss(fullPath)) {
-								for (String absolute : compiledCache.keySet())
-									compile(absolute);
-							}
+							if (filename.endsWith(".scss") || pathIsFolderAndContainsScss(fullPath))
+								cache.keySet().forEach(this::compile);
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -154,9 +152,8 @@ public class SassFilter implements Filter {
 		return value != null ? "true".equalsIgnoreCase(value) : defaultValue;
 	}
 
-	private byte[] compile(String absolute) throws ServletException {
+	private byte[] compile(String absolute) {
 		try {
-
 			SassCompilerOutput output = compiler.compileFile(absolute, null, null);
 
 			byte[] data;
@@ -184,14 +181,9 @@ public class SassFilter implements Filter {
 					throw new RuntimeException(noUtf8);
 				}
 			}
-
-			if (cache)
-				compiledCache.put(absolute, data);
 			return data;
-		} catch (ServletException e) {
-			throw e;
 		} catch (Exception e) {
-			throw new ServletException("Autoprefixer failed", e);
+			throw new RuntimeException("Autoprefixer failed", e);
 		}
 	}
 
@@ -212,7 +204,7 @@ public class SassFilter implements Filter {
 		}
 	}
 
-	public void addCacheHeaders(Path path, HttpServletRequest request, HttpServletResponse response) throws IOException {
+	private void addCacheHeaders(Path path, HttpServletRequest request, HttpServletResponse response) throws IOException {
 		Instant modified = Files.getLastModifiedTime(path).toInstant();
 		Long ifModifiedSinceValue;
 
