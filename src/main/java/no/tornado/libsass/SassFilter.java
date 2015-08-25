@@ -79,17 +79,20 @@ public class SassFilter implements Filter {
 			absolute = request.getServletContext().getRealPath(relative);
 		} else if(servletPath.endsWith(".css")) {
 			absolute = request.getServletContext().getRealPath(servletPath.replaceAll("\\.css$", ".scss"));
-		} else if (servletPath.endsWith(".scss"))
+		} else if (servletPath.endsWith(".scss")) {
 			absolute = request.getServletContext().getRealPath(servletPath);
+		}
 
 		if (absolute != null) {
-			if (cache != null) {
-				byte[] data = cache.computeIfAbsent(absolute, this::compile);
-				outputCss(response, data);
-				addCacheHeaders(Paths.get(absolute), request, (HttpServletResponse) response);
-				return;
-			} else if (Files.exists(Paths.get(absolute))){
-				outputCss(response, compile(absolute));
+			Path absolutePath = Paths.get(absolute);
+			if (Files.exists(absolutePath)) {
+				if (cache != null) {
+					byte[] data = cache.computeIfAbsent(absolute, this::compile);
+					outputCss(response, data);
+					addCacheHeaders(absolutePath, request, (HttpServletResponse) response);
+				} else {
+					outputCss(response, compile(absolute));
+				}
 				return;
 			}
 		}
