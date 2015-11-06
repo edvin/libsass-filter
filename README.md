@@ -15,7 +15,7 @@ Include the following Maven dependency in your pom.xml:
     <dependency>
         <groupId>no.tornado</groupId>
         <artifactId>libsass-filter</artifactId>
-        <version>0.1.2.9</version>
+        <version>3.2.4.0</version>
     </dependency>
 
 The default settings are good for development, as your stylesheets will be recompiled
@@ -46,7 +46,7 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
          </init-param>
          <init-param>
              <param-name>autoprefixerPath</param-name>
-             <param-value>/my/path/to/autoprefixer</param-value>
+             <param-value>postcss -u autoprefixer</param-value>
          </init-param>
      </filter>
  
@@ -71,7 +71,7 @@ For production use you should use `libsass-maven-plugin` to precompile your styl
  * `includePaths` - Additional include paths
  * `autoprefix` (true|false) - Add prefixes using [autoprefixer](https://github.com/postcss/autoprefixer) (requires `npm install --global autoprefixer`)
  * `autoprefixBrowsers` - What browsers to prefix for, defaults to `last 2 versions, ie 10`
- * `autoprefixerPath` - Path to autoprefixer, defaults to `autoprefixer`. On Windows, you need either fullpath or for example `autoprefixer.cmd`
+ * `autoprefixerPath` - Path to autoprefixer with arguments, defaults to `postcss -u autoprefixer`.
  
 ### Usage
 

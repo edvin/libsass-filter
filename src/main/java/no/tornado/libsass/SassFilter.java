@@ -8,13 +8,18 @@ import wrm.libsass.SassCompilerOutput;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,7 +35,7 @@ public class SassFilter implements Filter {
 	private WatchService watcher;
 	private Boolean autoprefix;
 	private String autoprefixBrowsers;
-	private String autoprefixerPath;
+	private List<String> autoprefixerPath;
 
 	public void init(FilterConfig cfg) throws ServletException {
 		compiler = new SassCompiler();
@@ -48,12 +53,14 @@ public class SassFilter implements Filter {
 		compiler.setPrecision(precision != null ? Integer.valueOf(precision) : 5);
 		autoprefix = booleanSetting(cfg, "autoprefix", false);
 		autoprefixBrowsers = cfg.getInitParameter("autoprefixBrowsers");
-		autoprefixerPath = cfg.getInitParameter("autoprefixerPath");
+		String autoprefixerPath = cfg.getInitParameter("autoprefixerPath");
 
 		if (autoprefixerPath == null)
-			autoprefixerPath = "autoprefixer";
+            this.autoprefixerPath = Arrays.asList("postcss", "-u", "autoprefixer");
+        else
+            this.autoprefixerPath = Arrays.asList(autoprefixerPath.split("\\s"));
 
-		if (autoprefixBrowsers == null)
+        if (autoprefixBrowsers == null)
 			autoprefixBrowsers = "last 2 versions, ie 10";
 
 		if (booleanSetting(cfg, "cache", false)) {
@@ -159,34 +166,45 @@ public class SassFilter implements Filter {
 		try {
 			SassCompilerOutput output = compiler.compileFile(absolute, null, null);
 
-			byte[] data;
+			byte[] data = output.getCssOutput().getBytes("UTF-8");
 
 			if (autoprefix) {
-				Path tmpCss = Files.createTempFile("stylesheet", "css");
-				Files.write(tmpCss, output.getCssOutput().getBytes("UTF-8"));
-				ProcessBuilder pb = new ProcessBuilder(autoprefixerPath, tmpCss.toString(), "-b", autoprefixBrowsers);
+
+                List<String> cmds = new ArrayList<>();
+                cmds.addAll(autoprefixerPath);
+                cmds.add("-b");
+                cmds.add(autoprefixBrowsers);
+
+                ProcessBuilder pb = new ProcessBuilder(cmds);
 				Process p = pb.start();
+
+                try (OutputStream procOut = p.getOutputStream()) {
+                    procOut.write(data);
+                }
+
+                try (InputStream procIn = p.getInputStream();
+                     ByteArrayOutputStream collector = new ByteArrayOutputStream()) {
+
+                    int read;
+                    byte[] buf = new byte[65536];
+
+                    while ((read = procIn.read(buf)) > -1) {
+                        collector.write(buf, 0, read);
+                    }
+
+                    data = collector.toByteArray();
+                }
+
 				int result = p.waitFor();
+
 				if (result != 0)
 					throw new ServletException("Autoprefixer failed with error code " + result);
 
-				data = Files.readAllBytes(tmpCss);
-
-				try {
-					Files.deleteIfExists(tmpCss);
-				} catch (IOException ignored) {
-				}
-
-			} else {
-				try {
-					data = output.getCssOutput().getBytes("UTF-8");
-				} catch (UnsupportedEncodingException noUtf8) {
-					throw new RuntimeException(noUtf8);
-				}
 			}
+
 			return data;
 		} catch (Exception e) {
-			throw new RuntimeException("Autoprefixer failed", e);
+			throw new RuntimeException("Compilation failed", e);
 		}
 	}
 
