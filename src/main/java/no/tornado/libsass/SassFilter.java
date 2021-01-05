@@ -1,9 +1,9 @@
 package no.tornado.libsass;
 
+import io.bit3.jsass.Output;
 import wrm.libsass.SassCompiler;
 import wrm.libsass.SassCompiler.InputSyntax;
 import wrm.libsass.SassCompiler.OutputStyle;
-import wrm.libsass.SassCompilerOutput;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -164,9 +164,9 @@ public class SassFilter implements Filter {
 
 	private byte[] compile(String absolute) {
 		try {
-			SassCompilerOutput output = compiler.compileFile(absolute, null, null);
+			Output output = compiler.compileFile(absolute, null, null);
 
-			byte[] data = output.getCssOutput().getBytes("UTF-8");
+			byte[] data = output.getCss().getBytes("UTF-8");
 
 			if (autoprefix) {
 
