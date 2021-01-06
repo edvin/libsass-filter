@@ -164,7 +164,7 @@ public class SassFilter implements Filter {
 
 	private byte[] compile(String absolute) {
 		try {
-			Output output = compiler.compileFile(absolute, null, null);
+			Output output = compiler.compileFile(absolute, "", null);
 
 			byte[] data = output.getCss().getBytes("UTF-8");
 

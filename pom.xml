@@ -6,7 +6,7 @@
 
     <groupId>no.tornado</groupId>
     <artifactId>libsass-filter</artifactId>
-    <version>3.2.4.1</version>
+    <version>3.2.4.3</version>
     <packaging>jar</packaging>
     <description>Compiles SASS to CSS on-the-fly</description>
     <inceptionYear>2015</inceptionYear>
@@ -89,8 +89,9 @@
         </pluginManagement>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>3.8.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
